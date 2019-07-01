@@ -19,7 +19,9 @@ import "aframe-slice9-component";
 import "./utils/audio-context-fix";
 import "./utils/threejs-positional-audio-updatematrixworld";
 import "./utils/threejs-world-update";
+import "./utils/threejs-video-texture-pause";
 import patchThreeAllocations from "./utils/threejs-allocation-patches";
+import addBlitFrameBufferFunction from "./utils/threejs-blit-framebuffer";
 import { detectOS, detect } from "detect-browser";
 import {
   getReticulumFetchUrl,
@@ -70,7 +72,6 @@ import "./components/pin-networked-object-button";
 import "./components/drop-object-button";
 import "./components/remove-networked-object-button";
 import "./components/camera-focus-button";
-import "./components/mirror-camera-button";
 import "./components/unmute-video-button";
 import "./components/destroy-at-extreme-distances";
 import "./components/visible-to-owner";
@@ -124,7 +125,6 @@ import "./systems/permissions";
 import "./systems/exit-on-blur";
 import "./systems/camera-tools";
 import "./systems/userinput/userinput";
-import "./systems/camera-mirror";
 import "./systems/userinput/userinput-debug";
 import "./systems/ui-hotkeys";
 import "./systems/tips";
@@ -132,6 +132,8 @@ import "./systems/interactions";
 import "./systems/hubs-systems";
 import "./systems/capture-system";
 import { SOUND_CHAT_MESSAGE } from "./systems/sound-effects-system";
+import { Buffer } from "buffer";
+window.Buffer = window.Buffer || Buffer;
 
 import "./gltf-component-mappings";
 
@@ -636,6 +638,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const physicsSystem = scene.systems.physics;
     physicsSystem.setDebug(isDebug || physicsSystem.data.debug);
     patchThreeAllocations();
+    addBlitFrameBufferFunction();
   };
 
   if (scene.hasLoaded) {
