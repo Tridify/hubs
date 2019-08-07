@@ -7,6 +7,7 @@ import { getCustomGLTFParserURLResolver } from "../utils/media-url-utils";
 import { promisifyWorker } from "../utils/promisify-worker.js";
 import { MeshBVH, acceleratedRaycast } from "three-mesh-bvh";
 import { disposeNode } from "../utils/three-utils";
+import { ifcData } from "../tridify/TridifyLoader";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
@@ -323,10 +324,15 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
     parser.json.extensions.MOZ_hubs_components.hasOwnProperty("version")
   ) {
     version = parser.json.extensions.MOZ_hubs_components.version;
-  } else {
+  }
+  //Tridify
+  else {
     if (!gltfUrl.includes("reticulum")) {
       for (let i = 0; i < parser.json.nodes.length; i++) {
         if (parser.json.nodes[i].hasOwnProperty("mesh")) {
+          if (ifcData.includes(parser.json.nodes[i].name)) {
+            //Do something to slabs (navmesh, collider)
+          }
           parser.json.nodes[i].extras = {
             gltfExtensions: {
               MOZ_hubs_components: {
@@ -338,7 +344,40 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
       }
     }
   }
+  /*
+  parser.json.nodes.push({
+    name: "navMeshLOL",
+    extras: {
+      gltfExtensions: {
+        MOZ_hubs_components: {
+          "nav-mesh": {},
+          visible: {
+            visible: false
+          }
+        }
+      }
+    },
+    mesh: 0
+  });
+
+  parser.json.nodes.push({
+    name: "trimesh",
+    extras: {
+      gltfExtensions: {
+        MOZ_hubs_components: {
+          trimesh: {},
+          visible: {
+            visible: false
+          }
+        }
+      }
+    }
+  });
+  parser.json.nodes[0].children.push(1);
+  parser.json.nodes[0].children.push(2);*/
   runMigration(version, parser.json);
+
+  //console.log(JSON.stringify(parser.json, null, 2));
 
   const materials = parser.json.materials;
   if (materials) {
