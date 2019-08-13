@@ -7,7 +7,7 @@ import { getCustomGLTFParserURLResolver } from "../utils/media-url-utils";
 import { promisifyWorker } from "../utils/promisify-worker.js";
 import { MeshBVH, acceleratedRaycast } from "three-mesh-bvh";
 import { disposeNode } from "../utils/three-utils";
-import { ifcData } from "../tridify/TridifyLoader";
+import { ifcData, navMeshes } from "../tridify/TridifyLoader";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
@@ -87,6 +87,7 @@ function parallelTraverse(a, b, callback) {
 }
 
 function generateMeshBVH(object3D) {
+  console.log(object3D);
   object3D.traverse(obj => {
     // note that we might already have a bounds tree if this was a clone of an object with one
     const hasBufferGeometry = obj.isMesh && obj.geometry.isBufferGeometry;
@@ -330,13 +331,14 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
     if (!gltfUrl.includes("reticulum")) {
       for (let i = 0; i < parser.json.nodes.length; i++) {
         if (parser.json.nodes[i].hasOwnProperty("mesh")) {
-          if (ifcData.includes(parser.json.nodes[i].name)) {
+          if (ifcData.includes(parser.json.nodes[i].name) || "31LvFAnQ57CwGTbPyXoFHl") {
             //Do something to slabs (navmesh, collider)
           }
           parser.json.nodes[i].extras = {
             gltfExtensions: {
               MOZ_hubs_components: {
-                shadow: { cast: true, receive: true }
+                shadow: { cast: true, receive: true },
+                visible: { visible: false }
               }
             }
           };
@@ -410,6 +412,17 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
   }
 
   const gltf = await new Promise(parser.parse.bind(parser));
+  //console.log(gltf.scene.children[0].children[0]);
+  //navMeshes.push
+  if (gltf.asset.generator == "COLLADA2GLTF") {
+    gltf.scene.traverse(obj => {
+      const hasBufferGeometry = obj.isMesh && obj.geometry.isBufferGeometry;
+      const hasBoundsTree = hasBufferGeometry && obj.geometry.boundsTree;
+      if (hasBufferGeometry && !hasBoundsTree && obj.geometry.attributes.position) {
+        navMeshes.push(obj.geometry);
+      }
+    });
+  }
 
   gltf.scene.traverse(object => {
     // GLTFLoader sets matrixAutoUpdate on animated objects, we want to keep the defaults
