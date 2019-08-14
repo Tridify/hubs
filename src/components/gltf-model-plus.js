@@ -87,7 +87,6 @@ function parallelTraverse(a, b, callback) {
 }
 
 function generateMeshBVH(object3D) {
-  console.log(object3D);
   object3D.traverse(obj => {
     // note that we might already have a bounds tree if this was a clone of an object with one
     const hasBufferGeometry = obj.isMesh && obj.geometry.isBufferGeometry;
@@ -244,6 +243,8 @@ const inflateEntities = function(indexToEntityMap, node, templates, isRoot, mode
 };
 
 function inflateComponents(inflatedEntity, indexToEntityMap) {
+  console.log(inflatedEntity);
+  console.log(indexToEntityMap);
   inflatedEntity.object3D.traverse(object3D => {
     const entityComponents = getHubsComponents(object3D);
     const el = object3D.el;
@@ -346,8 +347,8 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
       }
     }
   }
-  /*
-  parser.json.nodes.push({
+
+  /*parser.json.nodes.push({
     name: "navMeshLOL",
     extras: {
       gltfExtensions: {

@@ -33,7 +33,7 @@ async function createModel(scene) {
   let readyCount = 0;
   const ulrs = await parseGltfUrls();
   const element = document.createElement("a-entity");
-  element.setAttribute("gltf-model-plus", { src: ulrs[3], useCache: false, inflate: true });
+  element.setAttribute("gltf-model-plus", { src: ulrs[10], useCache: false, inflate: true });
   element.addEventListener("model-loaded", () => {
     //console.log(`Loaded GLTF model from ${url}`);
     readyCount++;
@@ -73,7 +73,9 @@ export async function getTridifyModel(objectsScene) {
   createLights(objectsScene);
   createModel(objectsScene);
   console.log("start");
-  setTimeout(createNavMesh, 7000);
+  setTimeout(() => {
+    createNavMesh(objectsScene);
+  }, 2000);
   console.log("done");
 }
 
@@ -89,22 +91,35 @@ const parseIfc = () => {
       return deco.IfcProject.IfcSite.IfcBuilding.IfcBuildingStorey;
     });
 };
-function createNavMesh() {
+function createNavMesh(scene) {
+  const element = document.createElement("a-entity");
+  //element.object3D.userData.gltfExtensions.MOZ_hubs_components = { "nav-mesh": {} };
   const singleGeometry = new THREE.Geometry();
 
   //console.log(navMeshes);
   for (let i = 0; i < navMeshes.length; i++) {
     const geo = new THREE.Geometry().fromBufferGeometry(navMeshes[i]);
     singleGeometry.merge(geo);
-    console.log("loop", i);
+    //console.log("loop", i);
   }
   const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
   const navMesh = new THREE.Mesh(singleGeometry, material);
-  navMesh.updateMatrix();
+  navMesh.rotation.x = -Math.PI / 2;
+  //console.log(navMesh.object3D);
+  //navMesh.rotation.z = Math.PI / 2;
+  //navMesh.updateMatrix();
   navMesh.name = "testiversio";
-  window.APP.scene.object3D.children[8].children[0].add(navMesh);
-  console.log(window.APP.scene);
-  console.log(window.APP.scene.object3D.children[8]);
+  element.object3D.add(navMesh);
+  element.setAttribute("nav-mesh", "nav-mesh");
+  console.log(element.object3D);
+  //console.log(element.object3D);
+  scene.appendChild(element);
+  //scene.object3D.add(navMesh);
+  //console.log(element.object3D);
+  console.log("navmesh created");
+
+  const tutor = document.getElementById("environment-scene");
+  console.log(tutor.object3D);
 }
 function getAllSlabsFromIfc(ifcStoreys) {
   ifcStoreys.forEach(storey => {
