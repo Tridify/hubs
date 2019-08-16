@@ -7,7 +7,7 @@ import { getCustomGLTFParserURLResolver } from "../utils/media-url-utils";
 import { promisifyWorker } from "../utils/promisify-worker.js";
 import { MeshBVH, acceleratedRaycast } from "three-mesh-bvh";
 import { disposeNode } from "../utils/three-utils";
-import { ifcData, navMeshes } from "../tridify/TridifyLoader";
+import { ifcData, navMeshes, singleGeometry } from "../tridify/TridifyLoader";
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
@@ -243,8 +243,6 @@ const inflateEntities = function(indexToEntityMap, node, templates, isRoot, mode
 };
 
 function inflateComponents(inflatedEntity, indexToEntityMap) {
-  console.log(inflatedEntity);
-  console.log(indexToEntityMap);
   inflatedEntity.object3D.traverse(object3D => {
     const entityComponents = getHubsComponents(object3D);
     const el = object3D.el;
@@ -310,7 +308,6 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
   const loadingManager = new THREE.LoadingManager();
   loadingManager.setURLModifier(getCustomGLTFParserURLResolver(gltfUrl));
   const gltfLoader = new THREE.GLTFLoader(loadingManager);
-
   const parser = await new Promise((resolve, reject) => gltfLoader.createParser(gltfUrl, resolve, onProgress, reject));
 
   parser.textureLoader = textureLoader;
@@ -327,7 +324,7 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
   ) {
     version = parser.json.extensions.MOZ_hubs_components.version;
   }
-  //Tridify
+  //Tridify set needed attributes
   else {
     if (!gltfUrl.includes("reticulum")) {
       for (let i = 0; i < parser.json.nodes.length; i++) {
@@ -335,52 +332,65 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
           if (ifcData.includes(parser.json.nodes[i].name) || "31LvFAnQ57CwGTbPyXoFHl") {
             //Do something to slabs (navmesh, collider)
           }
-          parser.json.nodes[i].extras = {
-            gltfExtensions: {
-              MOZ_hubs_components: {
-                shadow: { cast: true, receive: true },
-                visible: { visible: false }
+          if (parser.json.nodes[i].name == "Cube") {
+            parser.json.nodes[i].extras = {
+              gltfExtensions: {
+                MOZ_hubs_components: {
+                  shadow: { cast: true, receive: true },
+                  visible: { visible: true }
+                }
               }
-            }
-          };
+            };
+          } else {
+            parser.json.nodes[i].extras = {
+              gltfExtensions: {
+                MOZ_hubs_components: {
+                  shadow: { cast: true, receive: true },
+                  visible: { visible: false }
+                }
+              }
+            };
+          }
         }
       }
     }
   }
 
-  /*parser.json.nodes.push({
-    name: "navMeshLOL",
-    extras: {
-      gltfExtensions: {
-        MOZ_hubs_components: {
-          "nav-mesh": {},
-          visible: {
-            visible: false
-          }
-        }
-      }
-    },
-    mesh: 0
-  });
+  //tridify Create navmesh node
+  let a = false;
+  if (src.includes("navmeshScene")) {
+    console.log("set navmesh attr");
+    a = true;
 
-  parser.json.nodes.push({
-    name: "trimesh",
-    extras: {
-      gltfExtensions: {
-        MOZ_hubs_components: {
-          trimesh: {},
-          visible: {
-            visible: false
+    //parser.json.nodes[0].extensions.MOZ_hubs_components.visible.visible = true;
+    /*parser.json.nodes[0] = {
+      extras: {
+        gltfExtensions: {
+          MOZ_hubs_components: {
+            visible: { visible: true }
           }
         }
       }
-    }
-  });
-  parser.json.nodes[0].children.push(1);
-  parser.json.nodes[0].children.push(2);*/
+    };*/
+
+    parser.json.nodes.push({
+      name: "navMeshLOL",
+      extras: {
+        gltfExtensions: {
+          MOZ_hubs_components: {
+            "nav-mesh": {},
+            visible: {
+              visible: false
+            }
+          }
+        }
+      },
+      mesh: 0
+    });
+    console.log({ ...parser.json });
+    //parser.json.nodes[0]["children"] = 1;
+  }
   runMigration(version, parser.json);
-
-  //console.log(JSON.stringify(parser.json, null, 2));
 
   const materials = parser.json.materials;
   if (materials) {
@@ -397,7 +407,7 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
       }
     }
   }
-
+  console.log("sads");
   const nodes = parser.json.nodes;
 
   if (nodes) {
@@ -413,9 +423,19 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
   }
 
   const gltf = await new Promise(parser.parse.bind(parser));
-  //console.log(gltf.scene.children[0].children[0]);
-  //navMeshes.push
-  if (gltf.asset.generator == "COLLADA2GLTF") {
+  if (src.includes("navmeshScene")) {
+    gltf.scene.traverse(obj => {
+      const hasBufferGeometry = obj.isMesh && obj.geometry.isBufferGeometry;
+      const hasBoundsTree = hasBufferGeometry && obj.geometry.boundsTree;
+      if (hasBufferGeometry && !hasBoundsTree && obj.geometry.attributes.position) {
+        console.log({ ...obj.geometry });
+        obj.geometry.copy(singleGeometry);
+        console.log("set navmesh");
+      }
+    });
+  }
+  //tridify navMeshes.push
+  else if (gltf.asset.generator == "COLLADA2GLTF") {
     gltf.scene.traverse(obj => {
       const hasBufferGeometry = obj.isMesh && obj.geometry.isBufferGeometry;
       const hasBoundsTree = hasBufferGeometry && obj.geometry.boundsTree;
@@ -424,7 +444,8 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
       }
     });
   }
-
+  //tridify Find mesh and set geo to navmesh geo
+  console.log("saddsa");
   gltf.scene.traverse(object => {
     // GLTFLoader sets matrixAutoUpdate on animated objects, we want to keep the defaults
     object.matrixAutoUpdate = THREE.Object3D.DefaultMatrixAutoUpdate;
@@ -442,7 +463,6 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
     // The GLTF is now cached as a THREE object, we can get rid of the original blobs
     Object.keys(fileMap).forEach(URL.revokeObjectURL);
   }
-
   return gltf;
 }
 
@@ -513,116 +533,117 @@ AFRAME.registerComponent("gltf-model-plus", {
         }
       }
     } else {
+      console.log(src);
       return loadGLTF(src, contentType, technique, null, this.jsonPreprocessor);
     }
   },
 
   async applySrc(src, contentType) {
-    try {
-      // If the src attribute is a selector, get the url from the asset item.
-      if (src && src.charAt(0) === "#") {
-        const assetEl = document.getElementById(src.substring(1));
-        src = assetEl.getAttribute("src");
+    //try {
+    // If the src attribute is a selector, get the url from the asset item.
+    if (src && src.charAt(0) === "#") {
+      const assetEl = document.getElementById(src.substring(1));
+      src = assetEl.getAttribute("src");
+    }
+
+    if (src === this.lastSrc) return;
+
+    const lastSrc = this.lastSrc;
+    this.lastSrc = src;
+
+    if (!src) {
+      if (this.inflatedEl) {
+        console.warn("gltf-model-plus set to an empty source, unloading inflated model.");
+        this.disposeLastInflatedEl();
       }
+      return;
+    }
 
-      if (src === this.lastSrc) return;
+    this.el.emit("model-loading");
+    const gltf = await this.loadModel(src, contentType, this.preferredTechnique, this.data.useCache);
 
-      const lastSrc = this.lastSrc;
-      this.lastSrc = src;
+    // If we started loading something else already
+    // TODO: there should be a way to cancel loading instead
+    if (src != this.lastSrc) return;
 
-      if (!src) {
-        if (this.inflatedEl) {
-          console.warn("gltf-model-plus set to an empty source, unloading inflated model.");
-          this.disposeLastInflatedEl();
-        }
-        return;
+    // If we had inflated something already before, clean that up
+    this.disposeLastInflatedEl();
+
+    this.model = gltf.scene || gltf.scenes[0];
+    this.model.animations = gltf.animations;
+
+    if (this.data.batch) {
+      this.el.sceneEl.systems["hubs-systems"].batchManagerSystem.addObject(this.model);
+    }
+
+    if (gltf.animations.length > 0) {
+      this.el.setAttribute("animation-mixer", {});
+      this.el.components["animation-mixer"].initMixer(gltf.animations);
+    } else {
+      generateMeshBVH(this.model);
+    }
+
+    const indexToEntityMap = {};
+
+    let object3DToSet = this.model;
+    if (
+      this.data.inflate &&
+      (this.inflatedEl = inflateEntities(
+        indexToEntityMap,
+        this.model,
+        this.templates,
+        true,
+        this.data.modelToWorldScale
+      ))
+    ) {
+      this.el.appendChild(this.inflatedEl);
+
+      object3DToSet = this.inflatedEl.object3D;
+      // TODO: Still don't fully understand the lifecycle here and how it differs between browsers, we should dig in more
+      // Wait one tick for the appended custom elements to be connected before attaching templates
+      await nextTick();
+      if (src != this.lastSrc) return; // TODO: there must be a nicer pattern for this
+
+      inflateComponents(this.inflatedEl, indexToEntityMap);
+
+      for (const name in this.templates) {
+        attachTemplate(this.el, name, this.templates[name]);
       }
+    }
 
-      this.el.emit("model-loading");
-      const gltf = await this.loadModel(src, contentType, this.preferredTechnique, this.data.useCache);
+    // The call to setObject3D below recursively clobbers any `el` backreferences to entities
+    // in the entire inflated entity graph to point to `object3DToSet`.
+    //
+    // We don't want those overwritten, since lots of code assumes `object3d.el` points to the relevant
+    // A-Frame entity for that three.js object, so we back them up and re-wire them here. If we didn't do
+    // this, all the `el` properties on these object3ds would point to the `object3DToSet` which is either
+    // the model or the root GLTF inflated entity.
+    const rewires = [];
 
-      // If we started loading something else already
-      // TODO: there should be a way to cancel loading instead
-      if (src != this.lastSrc) return;
+    object3DToSet.traverse(o => {
+      const el = o.el;
+      if (el) rewires.push(() => (o.el = el));
+    });
 
-      // If we had inflated something already before, clean that up
-      this.disposeLastInflatedEl();
+    const environmentMapComponent = this.el.sceneEl.components["environment-map"];
 
-      this.model = gltf.scene || gltf.scenes[0];
-      this.model.animations = gltf.animations;
+    if (environmentMapComponent) {
+      environmentMapComponent.applyEnvironmentMap(object3DToSet);
+    }
 
-      if (this.data.batch) {
-        this.el.sceneEl.systems["hubs-systems"].batchManagerSystem.addObject(this.model);
-      }
+    if (lastSrc) {
+      gltfCache.release(lastSrc);
+    }
+    this.el.setObject3D("mesh", object3DToSet);
 
-      if (gltf.animations.length > 0) {
-        this.el.setAttribute("animation-mixer", {});
-        this.el.components["animation-mixer"].initMixer(gltf.animations);
-      } else {
-        generateMeshBVH(this.model);
-      }
+    rewires.forEach(f => f());
 
-      const indexToEntityMap = {};
-
-      let object3DToSet = this.model;
-      if (
-        this.data.inflate &&
-        (this.inflatedEl = inflateEntities(
-          indexToEntityMap,
-          this.model,
-          this.templates,
-          true,
-          this.data.modelToWorldScale
-        ))
-      ) {
-        this.el.appendChild(this.inflatedEl);
-
-        object3DToSet = this.inflatedEl.object3D;
-        // TODO: Still don't fully understand the lifecycle here and how it differs between browsers, we should dig in more
-        // Wait one tick for the appended custom elements to be connected before attaching templates
-        await nextTick();
-        if (src != this.lastSrc) return; // TODO: there must be a nicer pattern for this
-
-        inflateComponents(this.inflatedEl, indexToEntityMap);
-
-        for (const name in this.templates) {
-          attachTemplate(this.el, name, this.templates[name]);
-        }
-      }
-
-      // The call to setObject3D below recursively clobbers any `el` backreferences to entities
-      // in the entire inflated entity graph to point to `object3DToSet`.
-      //
-      // We don't want those overwritten, since lots of code assumes `object3d.el` points to the relevant
-      // A-Frame entity for that three.js object, so we back them up and re-wire them here. If we didn't do
-      // this, all the `el` properties on these object3ds would point to the `object3DToSet` which is either
-      // the model or the root GLTF inflated entity.
-      const rewires = [];
-
-      object3DToSet.traverse(o => {
-        const el = o.el;
-        if (el) rewires.push(() => (o.el = el));
-      });
-
-      const environmentMapComponent = this.el.sceneEl.components["environment-map"];
-
-      if (environmentMapComponent) {
-        environmentMapComponent.applyEnvironmentMap(object3DToSet);
-      }
-
-      if (lastSrc) {
-        gltfCache.release(lastSrc);
-      }
-      this.el.setObject3D("mesh", object3DToSet);
-
-      rewires.forEach(f => f());
-
-      this.el.emit("model-loaded", { format: "gltf", model: this.model });
-    } catch (e) {
+    this.el.emit("model-loaded", { format: "gltf", model: this.model });
+    /*} catch (e) {
       gltfCache.release(src);
       console.error("Failed to load glTF model", e, this);
       this.el.emit("model-error", { format: "gltf", src });
-    }
+    }*/
   },
 
   disposeLastInflatedEl() {

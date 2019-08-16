@@ -12,6 +12,7 @@ const baseUrl = "https://ws.tridify.com/api/shared/conversion";
 const myUrl = () => `${baseUrl}/${urlParams || defaultUrl}`;
 export const ifcData = [];
 export const navMeshes = [];
+export let singleGeometry;
 const parseGltfUrls = () => {
   return fetch(myUrl())
     .then(function(response) {
@@ -58,7 +59,6 @@ async function createModel(scene) {
       scene.appendChild(element);
     });
   });*/
-  return;
 }
 
 function createLights(objectsScene) {
@@ -71,11 +71,15 @@ export async function getTridifyModel(objectsScene) {
   setTridifyParams();
   await parseIfc().then(getAllSlabsFromIfc);
   createLights(objectsScene);
-  createModel(objectsScene);
+  await createModel(objectsScene);
   console.log("start");
   setTimeout(() => {
-    createNavMesh(objectsScene);
-  }, 2000);
+    createNavMesh();
+  }, 4000);
+
+  setTimeout(() => {
+    createMesh(objectsScene);
+  }, 4000);
   console.log("done");
 }
 
@@ -91,36 +95,30 @@ const parseIfc = () => {
       return deco.IfcProject.IfcSite.IfcBuilding.IfcBuildingStorey;
     });
 };
-function createNavMesh(scene) {
-  const element = document.createElement("a-entity");
-  //element.object3D.userData.gltfExtensions.MOZ_hubs_components = { "nav-mesh": {} };
-  const singleGeometry = new THREE.Geometry();
-
-  //console.log(navMeshes);
+async function createNavMesh(scene, a) {
+  // Create NavMesh from navmeshes
+  console.log(navMeshes.length);
+  const buffgeo = new THREE.Geometry();
   for (let i = 0; i < navMeshes.length; i++) {
-    const geo = new THREE.Geometry().fromBufferGeometry(navMeshes[i]);
-    singleGeometry.merge(geo);
-    //console.log("loop", i);
-  }
-  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-  const navMesh = new THREE.Mesh(singleGeometry, material);
-  navMesh.rotation.x = -Math.PI / 2;
-  //console.log(navMesh.object3D);
-  //navMesh.rotation.z = Math.PI / 2;
-  //navMesh.updateMatrix();
-  navMesh.name = "testiversio";
-  element.object3D.add(navMesh);
-  element.setAttribute("nav-mesh", "nav-mesh");
-  console.log(element.object3D);
-  //console.log(element.object3D);
-  scene.appendChild(element);
-  //scene.object3D.add(navMesh);
-  //console.log(element.object3D);
-  console.log("navmesh created");
+    //const geo = new THREE.BufferGeometry().fromGeometry(navMeshes[i]);
+    //singleGeometry.merge(geo);
 
-  const tutor = document.getElementById("environment-scene");
-  console.log(tutor.object3D);
+    buffgeo.merge(new THREE.Geometry().fromBufferGeometry(navMeshes[i]));
+  }
+  console.log(buffgeo);
+  buffgeo.mergeVertices();
+  const mesh = new THREE.Mesh(buffgeo);
+  console.log({ ...mesh });
+  //mesh.rotation.y = Math.PI / 2;
+  singleGeometry = new THREE.BufferGeometry().fromGeometry(mesh.geometry);
+  console.log({ ...singleGeometry });
 }
+async function createMesh(scene) {
+  const element = document.createElement("a-entity");
+  element.setAttribute("gltf-model-plus", { src: "./src/tridify/navmeshScene.glb", useCache: false, inflate: true });
+  scene.appendChild(element);
+}
+
 function getAllSlabsFromIfc(ifcStoreys) {
   ifcStoreys.forEach(storey => {
     if (storey.IfcSlab) {
