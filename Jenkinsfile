@@ -1,11 +1,6 @@
 pipeline {
     agent { label "fixed-linux" }
     stages {
-        stage("Cleanup") {
-            steps {
-                cleanWs()
-            }
-        }
         stage("Build") {
             environment {
                 NODE_OPTIONS='--max-old-space-size=8192'
@@ -32,6 +27,9 @@ pipeline {
     post {
         failure {
             slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+        }
+        cleanup {
+            cleanWs()
         }
     }
 }
