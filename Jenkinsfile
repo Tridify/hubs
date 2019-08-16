@@ -1,6 +1,11 @@
 pipeline {
     agent { label "fixed-linux" }
     stages {
+        stage("Cleanup") {
+            steps {
+                cleanWs()
+            }
+        }
         stage("Build") {
             environment {
                 NODE_OPTIONS='--max-old-space-size=8192'
