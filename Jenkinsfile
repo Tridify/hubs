@@ -6,7 +6,7 @@ pipeline {
                 NODE_OPTIONS='--max-old-space-size=8192'
             }
             steps {
-                sh 'npm ci'
+                sh 'npm install'
                 sh 'npm run build'
             }
         }
@@ -27,9 +27,6 @@ pipeline {
     post {
         failure {
             slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
-        }
-        cleanup {
-            cleanWs()
         }
     }
 }
