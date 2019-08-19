@@ -203,7 +203,7 @@ import qsTruthy from "./utils/qs_truthy";
 
 // Tridify
 import { getTridifyModel } from "./tridify/TridifyLoader";
-import * as TridifyDefault from "./tridify/nav.glb";
+import * as TridifyDefault from "./tridify/collider.glb";
 
 const PHOENIX_RELIABLE_NAF = "phx-reliable";
 NAF.options.firstSyncSource = PHOENIX_RELIABLE_NAF;

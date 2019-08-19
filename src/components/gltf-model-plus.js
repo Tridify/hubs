@@ -332,63 +332,51 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
           if (ifcData.includes(parser.json.nodes[i].name) || "31LvFAnQ57CwGTbPyXoFHl") {
             //Do something to slabs (navmesh, collider)
           }
-          if (parser.json.nodes[i].name == "Cube") {
-            parser.json.nodes[i].extras = {
-              gltfExtensions: {
-                MOZ_hubs_components: {
-                  shadow: { cast: true, receive: true },
-                  visible: { visible: true }
-                }
+          parser.json.nodes[i].extras = {
+            gltfExtensions: {
+              MOZ_hubs_components: {
+                shadow: { cast: true, receive: true },
+                visible: { visible: false }
               }
-            };
-          } else {
-            parser.json.nodes[i].extras = {
-              gltfExtensions: {
-                MOZ_hubs_components: {
-                  shadow: { cast: true, receive: true },
-                  visible: { visible: false }
-                }
-              }
-            };
-          }
+            }
+          };
         }
       }
     }
   }
 
   //tridify Create navmesh node
-  let a = false;
-  if (src.includes("navmeshScene")) {
+  if (src.includes("defaultNav")) {
     console.log("set navmesh attr");
-    a = true;
-
-    //parser.json.nodes[0].extensions.MOZ_hubs_components.visible.visible = true;
-    /*parser.json.nodes[0] = {
-      extras: {
-        gltfExtensions: {
-          MOZ_hubs_components: {
-            visible: { visible: true }
-          }
-        }
-      }
-    };*/
-
+    parser.json.nodes.length = 1;
     parser.json.nodes.push({
-      name: "navMeshLOL",
+      name: "navMeshTridify",
       extras: {
         gltfExtensions: {
           MOZ_hubs_components: {
             "nav-mesh": {},
             visible: {
-              visible: false
+              visible: true
             }
           }
         }
       },
       mesh: 0
     });
-    console.log({ ...parser.json });
-    //parser.json.nodes[0]["children"] = 1;
+    parser.json.nodes.push({
+      name: "trimesh",
+      extras: {
+        gltfExtensions: {
+          MOZ_hubs_components: {
+            trimesh: {},
+            visible: {
+              visible: false
+            }
+          }
+        }
+      }
+    });
+    parser.json.nodes[0].children.push(2);
   }
   runMigration(version, parser.json);
 
@@ -407,7 +395,7 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
       }
     }
   }
-  console.log("sads");
+  //console.log("sads");
   const nodes = parser.json.nodes;
 
   if (nodes) {
@@ -423,13 +411,14 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
   }
 
   const gltf = await new Promise(parser.parse.bind(parser));
-  if (src.includes("navmeshScene")) {
+  if (src.includes("defaultNav")) {
     gltf.scene.traverse(obj => {
       const hasBufferGeometry = obj.isMesh && obj.geometry.isBufferGeometry;
       const hasBoundsTree = hasBufferGeometry && obj.geometry.boundsTree;
       if (hasBufferGeometry && !hasBoundsTree && obj.geometry.attributes.position) {
-        console.log({ ...obj.geometry });
+        const a = obj.geometry.index; //hack
         obj.geometry.copy(singleGeometry);
+        obj.geometry.index = a;
         console.log("set navmesh");
       }
     });
@@ -440,12 +429,14 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
       const hasBufferGeometry = obj.isMesh && obj.geometry.isBufferGeometry;
       const hasBoundsTree = hasBufferGeometry && obj.geometry.boundsTree;
       if (hasBufferGeometry && !hasBoundsTree && obj.geometry.attributes.position) {
-        navMeshes.push(obj.geometry);
+        //console.log(ifcData.includes(obj.parent.name));
+        if (ifcData.includes(obj.parent.name)) {
+          navMeshes.push(obj.geometry);
+        }
       }
     });
   }
   //tridify Find mesh and set geo to navmesh geo
-  console.log("saddsa");
   gltf.scene.traverse(object => {
     // GLTFLoader sets matrixAutoUpdate on animated objects, we want to keep the defaults
     object.matrixAutoUpdate = THREE.Object3D.DefaultMatrixAutoUpdate;
@@ -533,7 +524,6 @@ AFRAME.registerComponent("gltf-model-plus", {
         }
       }
     } else {
-      console.log(src);
       return loadGLTF(src, contentType, technique, null, this.jsonPreprocessor);
     }
   },

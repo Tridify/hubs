@@ -32,16 +32,20 @@ function checkIfModelLoaded(scene, count, goal) {
 
 async function createModel(scene) {
   let readyCount = 0;
-  const ulrs = await parseGltfUrls();
-  const element = document.createElement("a-entity");
-  element.setAttribute("gltf-model-plus", { src: ulrs[10], useCache: false, inflate: true });
-  element.addEventListener("model-loaded", () => {
-    //console.log(`Loaded GLTF model from ${url}`);
-    readyCount++;
-    checkIfModelLoaded(scene, readyCount, 1);
-  });
-  scene.appendChild(element);
-  /*parseGltfUrls().then(model => {
+  /*const ulrs = await parseGltfUrls();
+  for (let i = 0; i < 5; i++) {
+    const element = document.createElement("a-entity");
+    element.setAttribute("gltf-model-plus", { src: ulrs[i], useCache: false, inflate: true });
+    element.addEventListener("model-loaded", () => {
+      //console.log(`Loaded GLTF model from ${url}`);
+      readyCount++;
+      checkIfModelLoaded(scene, readyCount, 1);
+    });
+    scene.appendChild(element);
+  }*/
+
+  //console.log(ulrs[0]);
+  parseGltfUrls().then(model => {
     model.forEach(url => {
       const element = document.createElement("a-entity");
       element.setAttribute("gltf-model-plus", { src: url, useCache: false, inflate: true });
@@ -58,7 +62,7 @@ async function createModel(scene) {
 
       scene.appendChild(element);
     });
-  });*/
+  });
 }
 
 function createLights(objectsScene) {
@@ -96,27 +100,25 @@ const parseIfc = () => {
     });
 };
 async function createNavMesh(scene, a) {
-  // Create NavMesh from navmeshes
-  console.log(navMeshes.length);
-  const buffgeo = new THREE.Geometry();
-  for (let i = 0; i < navMeshes.length; i++) {
-    //const geo = new THREE.BufferGeometry().fromGeometry(navMeshes[i]);
-    //singleGeometry.merge(geo);
-
-    buffgeo.merge(new THREE.Geometry().fromBufferGeometry(navMeshes[i]));
+  if (navMeshes.length > 0) {
+    console.log(navMeshes.length);
+    const buffgeo = new THREE.Geometry();
+    for (let i = 0; i < navMeshes.length; i++) {
+      buffgeo.merge(new THREE.Geometry().fromBufferGeometry(navMeshes[i]));
+    }
+    buffgeo.mergeVertices();
+    buffgeo.computeVertexNormals();
+    const mesh = new THREE.Mesh(buffgeo);
+    singleGeometry = new THREE.BufferGeometry().fromGeometry(mesh.geometry);
+    singleGeometry.computeVertexNormals();
   }
-  console.log(buffgeo);
-  buffgeo.mergeVertices();
-  const mesh = new THREE.Mesh(buffgeo);
-  console.log({ ...mesh });
-  //mesh.rotation.y = Math.PI / 2;
-  singleGeometry = new THREE.BufferGeometry().fromGeometry(mesh.geometry);
-  console.log({ ...singleGeometry });
 }
 async function createMesh(scene) {
-  const element = document.createElement("a-entity");
-  element.setAttribute("gltf-model-plus", { src: "./src/tridify/navmeshScene.glb", useCache: false, inflate: true });
-  scene.appendChild(element);
+  if (navMeshes.length > 0) {
+    const element = document.createElement("a-entity");
+    element.setAttribute("gltf-model-plus", { src: "./src/tridify/defaultNav.gltf", useCache: false, inflate: true });
+    scene.appendChild(element);
+  }
 }
 
 function getAllSlabsFromIfc(ifcStoreys) {
