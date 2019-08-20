@@ -329,9 +329,9 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
     if (!gltfUrl.includes("reticulum")) {
       for (let i = 0; i < parser.json.nodes.length; i++) {
         if (parser.json.nodes[i].hasOwnProperty("mesh")) {
-          if (ifcData.includes(parser.json.nodes[i].name) || "31LvFAnQ57CwGTbPyXoFHl") {
+          /*if (ifcData.includes(parser.json.nodes[i].name) || "31LvFAnQ57CwGTbPyXoFHl") {
             //Do something to slabs (navmesh, collider)
-          }
+          }*/
           parser.json.nodes[i].extras = {
             gltfExtensions: {
               MOZ_hubs_components: {
@@ -418,8 +418,8 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
       if (hasBufferGeometry && !hasBoundsTree && obj.geometry.attributes.position) {
         const a = obj.geometry.index; //hack
         obj.geometry.copy(singleGeometry);
-        obj.geometry.index = a;
-        console.log("set navmesh");
+        obj.geometry.index = a; // teleporting just works with this
+        console.log("set navmesh geometry");
       }
     });
   }
@@ -429,8 +429,10 @@ export async function loadGLTF(src, contentType, preferredTechnique, onProgress,
       const hasBufferGeometry = obj.isMesh && obj.geometry.isBufferGeometry;
       const hasBoundsTree = hasBufferGeometry && obj.geometry.boundsTree;
       if (hasBufferGeometry && !hasBoundsTree && obj.geometry.attributes.position) {
-        //console.log(ifcData.includes(obj.parent.name));
         if (ifcData.includes(obj.parent.name)) {
+          navMeshes.push(obj.geometry);
+        }
+        if (ifcData.includes(obj.name)) {
           navMeshes.push(obj.geometry);
         }
       }
