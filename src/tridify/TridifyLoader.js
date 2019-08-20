@@ -72,8 +72,9 @@ function createLights(objectsScene) {
 }
 
 export async function getTridifyModel(objectsScene) {
+  console.log(await parseIfc());
   setTridifyParams();
-  await parseIfc().then(getAllSlabsFromIfc);
+  /*await parseIfc().then(getAllSlabsFromIfc);
   createLights(objectsScene);
   await createModel(objectsScene);
   console.log("start");
@@ -83,7 +84,7 @@ export async function getTridifyModel(objectsScene) {
 
   setTimeout(() => {
     createMesh(objectsScene);
-  }, 4000);
+  }, 4000);*/
   console.log("done");
 }
 
@@ -96,7 +97,7 @@ const parseIfc = () => {
       return myJson.ifc.decomposition;
     })
     .then(function(deco) {
-      return deco.IfcProject.IfcSite.IfcBuilding.IfcBuildingStorey;
+      return deco;
     });
 };
 async function createNavMesh(scene, a) {
