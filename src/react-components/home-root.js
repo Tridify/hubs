@@ -60,7 +60,7 @@ class HomeRoot extends Component {
     signedIn: null,
     mailingListEmail: "",
     mailingListPrivacy: false,
-    urlHash: "dasddasasd"
+    urlHash: "iyN_Ip9hznKe0DVpD8uACqq-SuVaI0pzc33UkpbwzRE"
   };
 
   constructor(props) {
@@ -347,7 +347,7 @@ class HomeRoot extends Component {
   };
   renderCreateButton() {
     return (
-      <div>
+      <div className={styles.ctaButtons}>
         <button
           className={classNames(styles.primaryButton, styles.ctaButton)}
           onClick={e => {
@@ -357,7 +357,7 @@ class HomeRoot extends Component {
         >
           <FormattedMessage id="home.create_a_room" />
         </button>
-        <form className={styles.ctaButtons}>
+        <form>
           <input type="text" placeholder="Insert model hash" onChange={this.handlerInputChange} />
         </form>
       </div>
