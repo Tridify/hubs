@@ -129,7 +129,8 @@ export function fetchReticulumAuthenticated(url, method = "GET", payload) {
   });
 }
 
-export async function createAndRedirectToNewHub(name, sceneId, replace) {
+export async function createAndRedirectToNewHub(name, sceneId, replace, hash) {
+  console.log(hash);
   const createUrl = getReticulumFetchUrl("/api/v1/hubs");
   const payload = { hub: { name: name || generateHubName(), scene_id: sceneId } };
 
@@ -176,7 +177,7 @@ export async function createAndRedirectToNewHub(name, sceneId, replace) {
 
   // Tridify code
   if (process.env.RETICULUM_SERVER && document.location.host !== process.env.RETICULUM_SERVER) {
-    const model = getModelHash();
+    const model = hash ? hash : getModelHash();
     if (model) {
       url = `/hub.html?hub_id=${hub.hub_id}&model=${model}`;
     } else {
