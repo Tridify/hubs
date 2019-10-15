@@ -59,7 +59,8 @@ class HomeRoot extends Component {
     dialog: null,
     signedIn: null,
     mailingListEmail: "",
-    mailingListPrivacy: false
+    mailingListPrivacy: false,
+    urlHash: "iyN_Ip9hznKe0DVpD8uACqq-SuVaI0pzc33UkpbwzRE"
   };
 
   constructor(props) {
@@ -339,21 +340,32 @@ class HomeRoot extends Component {
     );
   }
 
+  handlerInputChange = event => {
+    this.setState({
+      urlHash: event.target.value
+    });
+  };
   renderCreateButton() {
     return (
-      <button
-        className={classNames(styles.primaryButton, styles.ctaButton)}
-        onClick={e => {
-          e.preventDefault();
-          createAndRedirectToNewHub(null, process.env.DEFAULT_SCENE_SID, false);
-        }}
-      >
-        <FormattedMessage id="home.create_a_room" />
-      </button>
+      <div className={styles.ctaButtons}>
+        <button
+          className={classNames(styles.primaryButton, styles.ctaButton)}
+          onClick={e => {
+            e.preventDefault();
+            createAndRedirectToNewHub(null, process.env.DEFAULT_SCENE_SID, false, this.state.urlHash);
+          }}
+        >
+          <FormattedMessage id="home.create_a_room" />
+        </button>
+        <form>
+          <input type="text" placeholder="Insert model hash" onChange={this.handlerInputChange} />
+        </form>
+      </div>
     );
   }
 
   renderFavoriteHero() {
+    //?? make localhost index screen
     return [
       <div className={styles.heroPanel} key={1}>
         <div className={styles.container}>
@@ -377,6 +389,7 @@ class HomeRoot extends Component {
   }
 
   renderNonFavoriteHero() {
+    //?? make localhost index screen
     return (
       <div className={styles.heroPanel}>
         <div className={styles.container}>
