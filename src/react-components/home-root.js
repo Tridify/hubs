@@ -278,7 +278,6 @@ class HomeRoot extends Component {
   }
 
   renderFavoriteHero() {
-    //?? make localhost index screen
     return [
       <div className={styles.heroPanel} key={1}>
         <div className={styles.container}>
@@ -302,7 +301,6 @@ class HomeRoot extends Component {
   }
 
   renderNonFavoriteHero() {
-    //?? make localhost index screen
     return (
       <div className={styles.heroPanel}>
         <div className={styles.container}>
