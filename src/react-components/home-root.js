@@ -60,7 +60,9 @@ class HomeRoot extends Component {
     signedIn: null,
     mailingListEmail: "",
     mailingListPrivacy: false,
-    urlHash: "iyN_Ip9hznKe0DVpD8uACqq-SuVaI0pzc33UkpbwzRE"
+    urlHash: "",
+    hashFound: "red",
+    checking: false
   };
 
   constructor(props) {
@@ -151,11 +153,6 @@ class HomeRoot extends Component {
         }
       }
     });
-  };
-
-  signOut = () => {
-    this.props.authChannel.signOut();
-    this.setState({ signedIn: false });
   };
 
   onLinkClicked = trigger => {
@@ -252,18 +249,40 @@ class HomeRoot extends Component {
       </button>
     );
   }
-
+  
   handlerInputChange = event => {
-    this.setState({
-      urlHash: event.target.value
-    });
+    const newHash = event.target.value.replace(/\s/g, '');
+    if(newHash != this.state.urlHash) {
+      this.setState({
+        checking: false
+      });
+    }
+    if(newHash && !this.state.checking) {
+      this.setState({
+        urlHash: newHash,
+        hashFound:"red",
+        checking: true
+      });
+      const baseUrl = "https://ws.tridify.com/api/shared/conversion/" + newHash + "/ifc";
+      fetch(baseUrl).then(res => {
+        if(res.ok){
+            this.setState({hashFound:"green"});
+      } else {
+        this.setState({hashFound:"red"});
+      }
+      this.setState({checking:false});
+      });
+    }
+    
   };
   renderCreateButton() {
     return (
       <div className={styles.ctaButtons}>
         <button
           className={classNames(styles.primaryButton, styles.ctaButton)}
+          style={{ backgroundColor: this.state.hashFound }}
           onClick={e => {
+            if(!this.state.hashFound) return;
             e.preventDefault();
             createAndRedirectToNewHub(null, process.env.DEFAULT_SCENE_SID, false, this.state.urlHash);
           }}
@@ -271,7 +290,7 @@ class HomeRoot extends Component {
           <FormattedMessage id="home.create_a_room" />
         </button>
         <form>
-          <input type="text" placeholder="Insert model hash" onChange={this.handlerInputChange} />
+          <input type="text" style={{ borderColor: this.state.hashFound }} placeholder="Insert model hash" onChange={this.handlerInputChange} />
         </form>
       </div>
     );
