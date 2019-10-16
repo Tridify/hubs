@@ -61,7 +61,7 @@ class HomeRoot extends Component {
     mailingListEmail: "",
     mailingListPrivacy: false,
     urlHash: "",
-    hashFound: false,
+    hashFound: "red",
     checking: false
   };
 
@@ -260,15 +260,15 @@ class HomeRoot extends Component {
     if(newHash && !this.state.checking) {
       this.setState({
         urlHash: newHash,
-        hashFound:false,
+        hashFound:"red",
         checking: true
       });
       const baseUrl = "https://ws.tridify.com/api/shared/conversion/" + newHash + "/ifc";
       fetch(baseUrl).then(res => {
         if(res.ok){
-            this.setState({hashFound:true});
+            this.setState({hashFound:"green"});
       } else {
-        this.setState({hashFound:false});
+        this.setState({hashFound:"red"});
       }
       this.setState({checking:false});
       });
@@ -280,7 +280,9 @@ class HomeRoot extends Component {
       <div className={styles.ctaButtons}>
         <button
           className={classNames(styles.primaryButton, styles.ctaButton)}
+          style={{ backgroundColor: this.state.hashFound }}
           onClick={e => {
+            if(!this.state.hashFound) return;
             e.preventDefault();
             createAndRedirectToNewHub(null, process.env.DEFAULT_SCENE_SID, false, this.state.urlHash);
           }}
@@ -288,7 +290,7 @@ class HomeRoot extends Component {
           <FormattedMessage id="home.create_a_room" />
         </button>
         <form>
-          <input type="text" placeholder="Insert model hash" onChange={this.handlerInputChange} />
+          <input type="text" style={{ borderColor: this.state.hashFound }} placeholder="Insert model hash" onChange={this.handlerInputChange} />
         </form>
       </div>
     );
