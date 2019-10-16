@@ -12,11 +12,11 @@ import hubLogo from "../assets/images/hub-preview-light-no-shadow.png";
 import discordLogoSmall from "../assets/images/discord-logo-small.png";
 import mozLogo from "../assets/images/moz-logo-black.png";
 import classNames from "classnames";
-import { ENVIRONMENT_URLS } from "../assets/environments/environments";
-import { createAndRedirectToNewHub, connectToReticulum } from "../utils/phoenix-utils";
+import { isLocalClient, createAndRedirectToNewHub, connectToReticulum } from "../utils/phoenix-utils";
 import maskEmail from "../utils/mask-email";
 import checkIsMobile from "../utils/is-mobile";
 import { faPlus } from "@fortawesome/free-solid-svg-icons/faPlus";
+import { faCog } from "@fortawesome/free-solid-svg-icons/faCog";
 import mediaBrowserStyles from "../assets/stylesheets/media-browser.scss";
 import AuthChannel from "../utils/auth-channel";
 
@@ -37,7 +37,6 @@ const isMobile = checkIsMobile();
 class HomeRoot extends Component {
   static propTypes = {
     intl: PropTypes.object,
-    sceneId: PropTypes.string,
     store: PropTypes.object,
     authChannel: PropTypes.object,
     authVerify: PropTypes.bool,
@@ -47,18 +46,21 @@ class HomeRoot extends Component {
     authOrigin: PropTypes.string,
     listSignup: PropTypes.bool,
     report: PropTypes.bool,
-    initialEnvironment: PropTypes.string,
     installEvent: PropTypes.object,
     hideHero: PropTypes.bool,
-    favoriteHubsResult: PropTypes.object
+    showAdmin: PropTypes.bool,
+    favoriteHubsResult: PropTypes.object,
+    showSignIn: PropTypes.bool,
+    signInDestination: PropTypes.string,
+    signInReason: PropTypes.string
   };
 
   state = {
-    environments: [],
     dialog: null,
     signedIn: null,
     mailingListEmail: "",
-    mailingListPrivacy: false
+    mailingListPrivacy: false,
+    urlHash: "iyN_Ip9hznKe0DVpD8uACqq-SuVaI0pzc33UkpbwzRE"
   };
 
   constructor(props) {
@@ -73,10 +75,8 @@ class HomeRoot extends Component {
       this.verifyAuth().then(this.showAuthDialog);
       return;
     }
-    if (this.props.sceneId) {
-      this.loadEnvironmentFromScene();
-    } else {
-      this.loadEnvironments();
+    if (this.props.showSignIn) {
+      this.showSignInDialog(false);
     }
     this.loadHomeVideo();
     if (this.props.listSignup) {
@@ -127,15 +127,28 @@ class HomeRoot extends Component {
       }
     });
 
-  showSignInDialog = () => {
+  showSignInDialog = (closable = true) => {
+    let messageId = "sign-in.prompt";
+
+    if (this.props.signInReason === "admin_no_permission") {
+      messageId = "sign-in.admin-no-permission";
+    } else if (this.props.signInDestination === "admin") {
+      messageId = "sign-in.admin";
+    }
+
     this.showDialog(SignInDialog, {
-      message: messages["sign-in.prompt"],
+      message: messages[messageId],
+      closable: closable,
       onSignIn: async email => {
         const { authComplete } = await this.props.authChannel.startAuthentication(email);
         this.showDialog(SignInDialog, { authStarted: true });
         await authComplete;
         this.setState({ signedIn: true, email });
         this.closeDialog();
+
+        if (this.props.signInDestination === "admin") {
+          document.location = isLocalClient() ? "/admin.html" : "/admin";
+        }
       }
     });
   };
@@ -143,46 +156,6 @@ class HomeRoot extends Component {
   signOut = () => {
     this.props.authChannel.signOut();
     this.setState({ signedIn: false });
-  };
-
-  loadEnvironmentFromScene = async () => {
-    let sceneUrlBase = "/api/v1/scenes";
-    if (process.env.RETICULUM_SERVER) {
-      sceneUrlBase = `https://${process.env.RETICULUM_SERVER}${sceneUrlBase}`;
-    }
-    const sceneInfoUrl = `${sceneUrlBase}/${this.props.sceneId}`;
-    const resp = await fetch(sceneInfoUrl).then(r => r.json());
-    const scene = resp.scenes[0];
-    const attribution = scene.attribution && scene.attribution.split("\n").join(", ");
-    const authors = attribution && [{ organization: { name: attribution } }];
-    // Transform the scene info into a an environment bundle structure.
-    this.setState({
-      environments: [
-        {
-          scene_id: this.props.sceneId,
-          meta: {
-            title: scene.name,
-            authors,
-            images: [{ type: "preview-thumbnail", srcset: scene.screenshot_url }]
-          }
-        }
-      ]
-    });
-  };
-
-  loadEnvironments = () => {
-    const environments = [];
-
-    const environmentLoads = ENVIRONMENT_URLS.map(src =>
-      (async () => {
-        const res = await fetch(src);
-        const data = await res.json();
-        data.bundle_url = src;
-        environments.push(data);
-      })()
-    );
-
-    Promise.all(environmentLoads).then(() => this.setState({ environments }));
   };
 
   onLinkClicked = trigger => {
@@ -205,40 +178,7 @@ class HomeRoot extends Component {
       <IntlProvider locale={lang} messages={messages}>
         <div className={styles.home}>
           <div className={mainContentClassNames}>
-            <div className={styles.headerContent}>
-              <div className={styles.titleAndNav} onClick={() => (document.location = "/")}>
-                <div className={styles.links}>
-                  <a href="/whats-new">
-                    <FormattedMessage id="home.whats_new_link" />
-                  </a>
-                  <a href="https://github.com/mozilla/hubs" rel="noreferrer noopener">
-                    <FormattedMessage id="home.source_link" />
-                  </a>
-                  <a href="https://discord.gg/wHmY4nd" rel="noreferrer noopener">
-                    <FormattedMessage id="home.community_link" />
-                  </a>
-                  <a href="/spoke" rel="noreferrer noopener">
-                    Spoke
-                  </a>
-                </div>
-              </div>
-              <div className={styles.signIn}>
-                {this.state.signedIn ? (
-                  <div>
-                    <span>
-                      <FormattedMessage id="sign-in.as" /> {maskEmail(this.state.email)}
-                    </span>{" "}
-                    <a onClick={this.onLinkClicked(this.signOut)}>
-                      <FormattedMessage id="sign-in.out" />
-                    </a>
-                  </div>
-                ) : (
-                  <a onClick={this.onLinkClicked(this.showSignInDialog)}>
-                    <FormattedMessage id="sign-in.in" />
-                  </a>
-                )}
-              </div>
-            </div>
+            <div className={styles.headerContent}></div>
             <div className={styles.heroContent}>
               {!this.props.hideHero &&
                 (this.props.favoriteHubsResult &&
@@ -257,56 +197,12 @@ class HomeRoot extends Component {
                       </video>
                     </div>
                   )}
-                  <div>
-                    <div className={styles.secondaryLink}>
-                      <a href="/link">
-                        <FormattedMessage id="home.have_code" />
-                      </a>
-                    </div>
-
-                    <div className={styles.secondaryLink}>
-                      <div>
-                        <FormattedMessage id="home.add_to_discord_1" />
-                      </div>
-                      <img src={discordLogoSmall} />
-                      <a href="/discord">
-                        <FormattedMessage id="home.add_to_discord_2" />
-                      </a>
-                      <div>
-                        <FormattedMessage id="home.add_to_discord_3" />
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
             <div className={styles.footerContent}>
               <div className={styles.links}>
                 <div className={styles.top}>
-                  <a
-                    className={styles.link}
-                    rel="noopener noreferrer"
-                    href="#"
-                    onClick={this.onLinkClicked(this.showJoinUsDialog)}
-                  >
-                    <FormattedMessage id="home.join_us" />
-                  </a>
-                  <a
-                    className={styles.link}
-                    rel="noopener noreferrer"
-                    href="#"
-                    onClick={this.onLinkClicked(this.showUpdatesDialog)}
-                  >
-                    <FormattedMessage id="home.get_updates" />
-                  </a>
-                  <a
-                    className={styles.link}
-                    rel="noopener noreferrer"
-                    href="#"
-                    onClick={this.onLinkClicked(this.showReportDialog)}
-                  >
-                    <FormattedMessage id="home.report_issue" />
-                  </a>
                   <a
                     className={styles.link}
                     target="_blank"
@@ -323,7 +219,6 @@ class HomeRoot extends Component {
                   >
                     <FormattedMessage id="home.privacy_notice" />
                   </a>
-
                   <img className={styles.mozLogo} src={mozLogo} />
                 </div>
               </div>
@@ -358,17 +253,27 @@ class HomeRoot extends Component {
     );
   }
 
+  handlerInputChange = event => {
+    this.setState({
+      urlHash: event.target.value
+    });
+  };
   renderCreateButton() {
     return (
-      <button
-        className={classNames(styles.primaryButton, styles.ctaButton)}
-        onClick={e => {
-          e.preventDefault();
-          createAndRedirectToNewHub(null, process.env.DEFAULT_SCENE_SID, null, false);
-        }}
-      >
-        <FormattedMessage id="home.create_a_room" />
-      </button>
+      <div className={styles.ctaButtons}>
+        <button
+          className={classNames(styles.primaryButton, styles.ctaButton)}
+          onClick={e => {
+            e.preventDefault();
+            createAndRedirectToNewHub(null, process.env.DEFAULT_SCENE_SID, false, this.state.urlHash);
+          }}
+        >
+          <FormattedMessage id="home.create_a_room" />
+        </button>
+        <form>
+          <input type="text" placeholder="Insert model hash" onChange={this.handlerInputChange} />
+        </form>
+      </div>
     );
   }
 
