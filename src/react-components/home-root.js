@@ -178,49 +178,7 @@ class HomeRoot extends Component {
       <IntlProvider locale={lang} messages={messages}>
         <div className={styles.home}>
           <div className={mainContentClassNames}>
-            <div className={styles.headerContent}>
-              <div className={styles.titleAndNav} onClick={() => (document.location = "/")}>
-                <div className={styles.links}>
-                  <a href="/whats-new">
-                    <FormattedMessage id="home.whats_new_link" />
-                  </a>
-                  <a href="https://github.com/mozilla/hubs" rel="noreferrer noopener">
-                    <FormattedMessage id="home.source_link" />
-                  </a>
-                  <a href="https://discord.gg/wHmY4nd" rel="noreferrer noopener">
-                    <FormattedMessage id="home.community_link" />
-                  </a>
-                  <a href="/spoke" rel="noreferrer noopener">
-                    Spoke
-                  </a>
-                  {this.props.showAdmin && (
-                    <a href="/admin" rel="noreferrer noopener">
-                      <i>
-                        <FontAwesomeIcon icon={faCog} />
-                      </i>
-                      &nbsp;
-                      <FormattedMessage id="home.admin" />
-                    </a>
-                  )}
-                </div>
-              </div>
-              <div className={styles.signIn}>
-                {this.state.signedIn ? (
-                  <div>
-                    <span>
-                      <FormattedMessage id="sign-in.as" /> {maskEmail(this.state.email)}
-                    </span>{" "}
-                    <a onClick={this.onLinkClicked(this.signOut)}>
-                      <FormattedMessage id="sign-in.out" />
-                    </a>
-                  </div>
-                ) : (
-                  <a onClick={this.onLinkClicked(this.showSignInDialog)}>
-                    <FormattedMessage id="sign-in.in" />
-                  </a>
-                )}
-              </div>
-            </div>
+            <div className={styles.headerContent}></div>
             <div className={styles.heroContent}>
               {!this.props.hideHero &&
                 (this.props.favoriteHubsResult &&
@@ -239,56 +197,12 @@ class HomeRoot extends Component {
                       </video>
                     </div>
                   )}
-                  <div>
-                    <div className={styles.secondaryLink}>
-                      <a href="/link">
-                        <FormattedMessage id="home.have_code" />
-                      </a>
-                    </div>
-
-                    <div className={styles.secondaryLink}>
-                      <div>
-                        <FormattedMessage id="home.add_to_discord_1" />
-                      </div>
-                      <img src={discordLogoSmall} />
-                      <a href="/discord">
-                        <FormattedMessage id="home.add_to_discord_2" />
-                      </a>
-                      <div>
-                        <FormattedMessage id="home.add_to_discord_3" />
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
             <div className={styles.footerContent}>
               <div className={styles.links}>
                 <div className={styles.top}>
-                  <a
-                    className={styles.link}
-                    rel="noopener noreferrer"
-                    href="#"
-                    onClick={this.onLinkClicked(this.showJoinUsDialog)}
-                  >
-                    <FormattedMessage id="home.join_us" />
-                  </a>
-                  <a
-                    className={styles.link}
-                    rel="noopener noreferrer"
-                    href="#"
-                    onClick={this.onLinkClicked(this.showUpdatesDialog)}
-                  >
-                    <FormattedMessage id="home.get_updates" />
-                  </a>
-                  <a
-                    className={styles.link}
-                    rel="noopener noreferrer"
-                    href="#"
-                    onClick={this.onLinkClicked(this.showReportDialog)}
-                  >
-                    <FormattedMessage id="home.report_issue" />
-                  </a>
                   <a
                     className={styles.link}
                     target="_blank"
@@ -305,7 +219,6 @@ class HomeRoot extends Component {
                   >
                     <FormattedMessage id="home.privacy_notice" />
                   </a>
-
                   <img className={styles.mozLogo} src={mozLogo} />
                 </div>
               </div>
@@ -365,7 +278,6 @@ class HomeRoot extends Component {
   }
 
   renderFavoriteHero() {
-    //?? make localhost index screen
     return [
       <div className={styles.heroPanel} key={1}>
         <div className={styles.container}>
@@ -389,7 +301,6 @@ class HomeRoot extends Component {
   }
 
   renderNonFavoriteHero() {
-    //?? make localhost index screen
     return (
       <div className={styles.heroPanel}>
         <div className={styles.container}>
