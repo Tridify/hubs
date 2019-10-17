@@ -1,4 +1,4 @@
-import groovy.json.JsonOutput
+/*import groovy.json.JsonOutput
 
 // From https://issues.jenkins-ci.org/browse/JENKINS-44231
 
@@ -12,7 +12,7 @@ def shellString(s) {
   // and enclose using $'...' (https://stackoverflow.com/a/8254156/4839573).
   // Because ANSI-C quoting is not yet supported by Dash (default shell in Ubuntu & Debian) (https://unix.stackexchange.com/a/371873).
   '\'' + s.replace('\'', '\'\\\'\'') + '\''
-}
+}*/
 
 pipeline {
   agent { label "fixed-linux" }
@@ -83,8 +83,8 @@ pipeline {
     failure {
       slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
     }
-    always {
+    /*always {
        deleteDir()
-     }
+     }*/
    }
 }
