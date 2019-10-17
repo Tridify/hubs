@@ -16,6 +16,16 @@ body {
   @extend %default-font;
 }
 
+input {
+  width: 450px;
+  size: 10px;
+  margin-top: 40px;
+  border: 3px solid red;
+  border-radius: 5px;
+  font-size:17px;
+  text-align:center;
+}
+
 :local(.home) {
   display: flex;
   flex-direction: column;
