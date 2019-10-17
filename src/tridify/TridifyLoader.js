@@ -55,6 +55,7 @@ async function createModel(scene) {
 function createLights(objectsScene) {
   const element = document.createElement("a-light");
   element.setAttribute("type", "ambient");
+  element.setAttribute("intensity", 2.5);
   objectsScene.appendChild(element);
 }
 
