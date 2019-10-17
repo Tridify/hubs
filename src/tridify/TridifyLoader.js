@@ -1,4 +1,5 @@
 import { getModelHash } from "./modelparams";
+import { isArray } from "util";
 
 let urlParams;
 
@@ -77,16 +78,18 @@ const parseIfc = () => {
     });
 };
 function getAllSlabsFromIfc(ifcStoreys) {
-  ifcStoreys.forEach(storey => {
-    if (storey.IfcSlab) {
-      // Ifc slab can be an array of objects or just one object
-      if (storey.IfcSlab[0]) {
-        storey.IfcSlab.forEach(element => {
-          ifcData.push(element["@id"]);
-        });
-      } else {
-        ifcData.push(storey.IfcSlab["@id"]);
+  if (isArray(ifcStoreys)) {
+    ifcStoreys.forEach(storey => {
+      if (storey.IfcSlab) {
+        // Ifc slab can be an array of objects or just one object
+        if (storey.IfcSlab[0]) {
+          storey.IfcSlab.forEach(element => {
+            ifcData.push(element["@id"]);
+          });
+        } else {
+          ifcData.push(storey.IfcSlab["@id"]);
+        }
       }
-    }
-  });
+    });
+  }
 }
