@@ -1,5 +1,6 @@
 import { getModelHash } from "./modelparams";
 import { isArray } from "util";
+import { centerModel } from "./centerModel";
 
 let urlParams;
 
@@ -31,7 +32,8 @@ function checkIfModelLoaded(scene, count, goal) {
 
 async function createModel(scene) {
   let readyCount = 0;
-  parseGltfUrls().then(model => {
+  const arrayOfElements = [];
+  await parseGltfUrls().then(model => {
     model.forEach(url => {
       const element = document.createElement("a-entity");
       element.setAttribute("gltf-model-plus", { src: url, useCache: false, inflate: true });
@@ -45,11 +47,11 @@ async function createModel(scene) {
         readyCount++;
         checkIfModelLoaded(scene, readyCount, model.length);
       });
-
+      arrayOfElements.push(element);
       scene.appendChild(element);
     });
   });
-  return;
+  return arrayOfElements;
 }
 
 function createLights(objectsScene) {
@@ -64,7 +66,8 @@ export async function getTridifyModel(objectsScene) {
   setTridifyParams();
   await parseIfc().then(getAllSlabsFromIfc);
   createLights(objectsScene);
-  createModel(objectsScene);
+  const a = createModel(objectsScene);
+  centerModel(a);
 }
 
 const parseIfc = () => {
