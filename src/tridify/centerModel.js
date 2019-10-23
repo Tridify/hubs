@@ -2,27 +2,42 @@ import { Vector3 } from "three";
 import { getIfcSlabs } from "./ifcDataHolder";
 
 export function centerModel(arrayElements, ifc) {
-  const a = [];
-  arrayElements.map(x => a.push(getElements(x.object3D, getIfcSlabs(ifc))));
-  const slabs = [].concat.apply([], a);
-  slabs.map(x => console.log(getIdsByChildTypes(x)));
-  const lowest = getLowestSlab()
-  //const posList = [];
-  //arrayElements.map(x => posList.push(getIdsByChildTypes(x.object3D)));
-  //const a = getLenghtFromCenter(posList);
-  //arrayElements.map(x => x.setAttribute("position", a));
+  const slabsData = getIfcSlabs(ifc);
+  if(!slabsData) console.log("no slabs found");
+
+  const slabGroups = arrayElements.map(x => { return getElements(x.object3D, slabsData)
+  }).filter(x => x.length > 0).flat();
+
+  const slabsPos = slabGroups.map(x => {
+    return getIdsByChildTypes(x);
+  }).filter(x => x.length > 0).flat();
+
+  const a = getLenghtFromCenter(arrayElements.map(x => {
+    return getIdsByChildTypes(x.object3D);
+  }).filter(x => x.length > 0).flat(), getLowestSlab(slabsPos));
+
+  arrayElements.map(x => x.setAttribute("position", a));
+  return a;
+}
+function getLowestSlab(slabsPos) {
+  let a = 100000;
+  slabsPos.map(x => {
+    if(a > x.y) {
+      a = x.y;
+    }
+  });
+  return a;
 }
 
-function getLenghtFromCenter(arrayElements) {
+function getLenghtFromCenter(arrayElements, yPosition) {
   let xPos = -100000,
     yPos = -100000,
     zPos = -100000;
   let xNeg = 100000,
     yNeg = 100000,
     zNeg = 100000;
-  const posList = [];
-  arrayElements.map(x => x.map(y => posList.push(y)));
-  posList.map(p => {
+
+  arrayElements.map(p => {
     if (p.x > xPos) {
       xPos = p.x;
     }
@@ -32,7 +47,6 @@ function getLenghtFromCenter(arrayElements) {
     if (p.z > zPos) {
       zPos = p.z;
     }
-
     if (p.x < xNeg) {
       xNeg = p.x;
     }
@@ -43,7 +57,7 @@ function getLenghtFromCenter(arrayElements) {
       zNeg = p.z;
     }
   });
-  const centerVector = new Vector3(-(xNeg + xPos) / 2, 0, -(zNeg + zPos) / 2);
+  const centerVector = new Vector3(-(xNeg + xPos) / 2, -yPosition, -(zNeg + zPos) / 2);
   return centerVector;
 }
 
