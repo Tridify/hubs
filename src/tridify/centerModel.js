@@ -1,8 +1,16 @@
-import { Vector3, Vector2 } from "three";
+import { Vector3 } from "three";
+import { getIfcSlabs } from "./ifcDataHolder";
 
-export function centerModel(arrayElements) {
-  console.log(arrayElements);
-  getLenghtFromCenter(arrayElements);
+export function centerModel(arrayElements, ifc) {
+  const a = [];
+  arrayElements.map(x => a.push(getElements(x.object3D, getIfcSlabs(ifc))));
+  const slabs = [].concat.apply([], a);
+  slabs.map(x => console.log(getIdsByChildTypes(x)));
+  const lowest = getLowestSlab()
+  //const posList = [];
+  //arrayElements.map(x => posList.push(getIdsByChildTypes(x.object3D)));
+  //const a = getLenghtFromCenter(posList);
+  //arrayElements.map(x => x.setAttribute("position", a));
 }
 
 function getLenghtFromCenter(arrayElements) {
@@ -12,38 +20,60 @@ function getLenghtFromCenter(arrayElements) {
   let xNeg = 100000,
     yNeg = 100000,
     zNeg = 100000;
-  posList = [];
-  arrayElements.map(x => posList.push(x.pos));
+  const posList = [];
+  arrayElements.map(x => x.map(y => posList.push(y)));
   posList.map(p => {
     if (p.x > xPos) {
-      xPos = p.pos.x;
+      xPos = p.x;
     }
-    if (p.pos.y > yPos) {
-      yPos = p.pos.y;
+    if (p.y > yPos) {
+      yPos = p.y;
     }
-    if (p.pos.z > zPos) {
-      zPos = p.pos.z;
+    if (p.z > zPos) {
+      zPos = p.z;
     }
 
-    if (p.pos.x < xNeg) {
-      xNeg = p.pos.x;
+    if (p.x < xNeg) {
+      xNeg = p.x;
     }
-    if (p.pos.y < yNeg) {
-      yNeg = p.pos.y;
+    if (p.y < yNeg) {
+      yNeg = p.y;
     }
-    if (p.pos.z < zNeg) {
-      zNeg = p.pos.z;
+    if (p.z < zNeg) {
+      zNeg = p.z;
     }
   });
-  const vecNeg = new Vector3(xNeg, yNeg, zNeg);
-  const vecPos = new Vector3(xPos, yPos, zPos);
-  const centerVector = new Vector3((vecNeg.x + vecPos.x) / 2, (vecNeg.y + vecPos.y) / 2, (vecNeg.z + vecPos.z) / 2);
-  return null;
+  const centerVector = new Vector3(-(xNeg + xPos) / 2, 0, -(zNeg + zPos) / 2);
+  return centerVector;
 }
 
-function distanceVector(v1, v2) {
-  const dx = v1.x - v2.x;
-  const dy = v1.y - v2.y;
-  const dz = v1.z - v2.z;
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+function getIdsByChildTypes(ifcObject, accumulator = []) {
+  if (ifcObject.hasOwnProperty("children") && ifcObject["type"] == "Mesh") {
+    accumulator.push(ifcObject.getWorldPosition());
+  }
+  if (!isEmpty(ifcObject["children"])) {
+    ifcObject.children.forEach(x => getIdsByChildTypes(x, accumulator));
+  }
+  return accumulator;
+}
+
+function isEmpty(obj) {
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) return false;
+  }
+  return true;
+}
+
+function getElements(ifcObject, childHashIds, accumulator = []) {
+  if (
+    ifcObject["type"] == "Group" &&
+    ifcObject.hasOwnProperty("name") &&
+    Object.values(ifcObject).some(y => childHashIds.includes(y))
+  ) {
+    accumulator.push(ifcObject);
+  }
+  if (!isEmpty(ifcObject["children"])) {
+    ifcObject.children.forEach(x => getElements(x, childHashIds, accumulator));
+  }
+  return accumulator;
 }

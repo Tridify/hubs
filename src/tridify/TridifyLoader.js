@@ -1,8 +1,11 @@
 import { getModelHash } from "./modelparams";
 import { isArray } from "util";
 import { centerModel } from "./centerModel";
+import { getIfcSlabs } from "./ifcDataHolder";
 
 let urlParams;
+let ifcData;
+const TridifyElements = [];
 
 export function setTridifyParams() {
   urlParams = getModelHash();
@@ -12,7 +15,6 @@ export function setTridifyParams() {
 const defaultUrl = "iyN_Ip9hznKe0DVpD8uACqq-SuVaI0pzc33UkpbwzRE";
 const baseUrl = "https://ws.tridify.com/api/shared/conversion";
 const myUrl = () => `${baseUrl}/${urlParams || defaultUrl}`;
-export const ifcData = [];
 const parseGltfUrls = () => {
   return fetch(myUrl())
     .then(function(response) {
@@ -23,8 +25,9 @@ const parseGltfUrls = () => {
     });
 };
 
-function checkIfModelLoaded(scene, count, goal) {
+function checkIfModelLoaded(count, goal) {
   if (count === goal) {
+    centerModel(TridifyElements, ifcData);
     window.APP.scene.emit("tridify-scene-loaded");
     console.log("Tridify Model Loaded");
   }
@@ -32,7 +35,6 @@ function checkIfModelLoaded(scene, count, goal) {
 
 async function createModel(scene) {
   let readyCount = 0;
-  const arrayOfElements = [];
   await parseGltfUrls().then(model => {
     model.forEach(url => {
       const element = document.createElement("a-entity");
@@ -40,18 +42,17 @@ async function createModel(scene) {
       element.addEventListener("model-loaded", () => {
         console.log(`Loaded GLTF model from ${url}`);
         readyCount++;
-        checkIfModelLoaded(scene, readyCount, model.length);
+        checkIfModelLoaded(readyCount, model.length);
       });
       element.addEventListener("model-error", () => {
         console.log(`GLTF-model from : ${url} was unable to load`);
         readyCount++;
-        checkIfModelLoaded(scene, readyCount, model.length);
+        checkIfModelLoaded(readyCount, model.length);
       });
-      arrayOfElements.push(element);
+      TridifyElements.push(element);
       scene.appendChild(element);
     });
   });
-  return arrayOfElements;
 }
 
 function createLights(objectsScene) {
@@ -64,10 +65,9 @@ function createLights(objectsScene) {
 
 export async function getTridifyModel(objectsScene) {
   setTridifyParams();
-  await parseIfc().then(getAllSlabsFromIfc);
+  ifcData = await parseIfc();
   createLights(objectsScene);
-  const a = createModel(objectsScene);
-  centerModel(a);
+  await createModel(objectsScene);
 }
 
 const parseIfc = () => {
