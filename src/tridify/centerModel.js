@@ -1,35 +1,57 @@
 import { Vector3 } from "three";
 import { getIfcSlabs } from "./ifcDataHolder";
+import { setMainCameraPositon } from "./setCamera";
 
 export function centerModel(arrayElements, ifc) {
   const slabsData = getIfcSlabs(ifc);
-  if(!slabsData) console.log("no slabs found");
+  if (!slabsData) console.log("no slabs found");
 
-  const slabGroups = arrayElements.map(x => { return getElements(x.object3D, slabsData)
-  }).filter(x => x.length > 0).flat();
+  const slabGroups = arrayElements
+    .map(x => {
+      return getElements(x.object3D, slabsData);
+    })
+    .filter(x => x.length > 0)
+    .flat();
 
-  const slabsPos = slabGroups.map(x => {
-    return getIdsByChildTypes(x);
-  }).filter(x => x.length > 0).flat();
+  const slabsPos = slabGroups
+    .map(x => {
+      return getIdsByChildTypes(x);
+    })
+    .filter(x => x.length > 0)
+    .flat();
 
-  const a = getLenghtFromCenter(arrayElements.map(x => {
-    return getIdsByChildTypes(x.object3D);
-  }).filter(x => x.length > 0).flat(), getLowestSlab(slabsPos));
+  const vectors = getLenghtFromCenter(
+    arrayElements
+      .map(x => {
+        return getIdsByChildTypes(x.object3D);
+      })
+      .filter(x => x.length > 0)
+      .flat(),
+    getLowestSlab(slabsPos)
+  );
+  setMainCameraPositon(vectors);
+  const moveVector = createVectorToMove(vectors);
 
-  arrayElements.map(x => x.setAttribute("position", a));
-  return a;
+  arrayElements.forEach(x => x.setAttribute("position", moveVector));
+  return moveVector;
 }
 function getLowestSlab(slabsPos) {
   let a = 100000;
-  slabsPos.map(x => {
-    if(a > x.y) {
+  slabsPos.forEach(x => {
+    if (a > x.y) {
       a = x.y;
     }
   });
   return a;
 }
+function createVectorToMove(vectors, yPosition) {
+  const posVector = vectors[0];
+  const negVector = vectors[1];
+  const centerVector = new Vector3(-(negVector.x + posVector.x) / 2, -yPosition, -(negVector.z + posVector.z) / 2);
+  return centerVector;
+}
 
-function getLenghtFromCenter(arrayElements, yPosition) {
+function getLenghtFromCenter(arrayElements) {
   let xPos = -100000,
     yPos = -100000,
     zPos = -100000;
@@ -37,7 +59,7 @@ function getLenghtFromCenter(arrayElements, yPosition) {
     yNeg = 100000,
     zNeg = 100000;
 
-  arrayElements.map(p => {
+  arrayElements.forEach(p => {
     if (p.x > xPos) {
       xPos = p.x;
     }
@@ -57,8 +79,8 @@ function getLenghtFromCenter(arrayElements, yPosition) {
       zNeg = p.z;
     }
   });
-  const centerVector = new Vector3(-(xNeg + xPos) / 2, -yPosition, -(zNeg + zPos) / 2);
-  return centerVector;
+  return [{ x: xPos, y: yPos, z: zPos }, { x: xNeg, y: yNeg, z: zNeg }];
+  //return [xPos, yPos, zPos, xNeg, yNeg, zNeg];
 }
 
 function getIdsByChildTypes(ifcObject, accumulator = []) {
