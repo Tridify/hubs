@@ -1,4 +1,4 @@
-import groovy.json.JsonOutput
+/*import groovy.json.JsonOutput
 
 // From https://issues.jenkins-ci.org/browse/JENKINS-44231
 
@@ -12,23 +12,35 @@ def shellString(s) {
   // and enclose using $'...' (https://stackoverflow.com/a/8254156/4839573).
   // Because ANSI-C quoting is not yet supported by Dash (default shell in Ubuntu & Debian) (https://unix.stackexchange.com/a/371873).
   '\'' + s.replace('\'', '\'\\\'\'') + '\''
-}
+}*/
 
 pipeline {
-  agent any
-
-  options {
-    ansiColor('xterm')
-  }
+  agent { label "fixed-linux" }
 
   stages {
-    stage('pre-build') {
+    stage('Build') {
+       environment {
+         NODE_OPTIONS='--max-old-space-size=8192'
+       }
       steps {
-        sh 'rm -rf ./dist ./tmp'
+        sh 'npm install'
+        sh 'npm run build'
       }
     }
-
-    stage('build') {
+    stage("Deploy") {	
+            steps {	
+                script {	
+                    def path = "hubs/"	
+                    if(env.BRANCH_NAME != "prod") {	
+                        path += env.BRANCH_NAME	
+                    }	
+                    sh "aws s3 cp ./dist/ 's3://view.tridify.com/${path}'  --recursive  --exclude 'index.html' --include '*'"	
+                    sh "aws s3 cp ./dist/index.html 's3://view.tridify.com/${path}/index.html' --cache-control no-cache"	
+                    sh "aws cloudfront create-invalidation --distribution-id E53CGHVMV9SPB --paths '/*'"	
+                }	
+            }	
+        }
+    /*stage('build') {
       steps {
         script {
           def baseAssetsPath = env.BASE_ASSETS_PATH
@@ -64,12 +76,15 @@ pipeline {
           sh "curl -X POST --data-urlencode ${shellString(payload)} ${slackURL}"
         }
       }
-    }
+    }*/
   }
 
   post {
-     always {
+    failure {
+      slackSend (color: '#FF0000', message: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+    }
+    /*always {
        deleteDir()
-     }
+     }*/
    }
 }

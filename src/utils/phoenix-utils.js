@@ -179,9 +179,9 @@ export async function createAndRedirectToNewHub(name, sceneId, replace, hash) {
   if (process.env.RETICULUM_SERVER && document.location.host !== process.env.RETICULUM_SERVER) {
     const model = hash ? hash : getModelHash();
     if (model) {
-      url = `/hub.html?hub_id=${hub.hub_id}&model=${model}`;
+      url = `/hubs/hub.html?hub_id=${hub.hub_id}&model=${model}`;
     } else {
-      url = `/hub.html?hub_id=${hub.hub_id}`;
+      url = `/hubs/hub.html?hub_id=${hub.hub_id}`;
     }
   }
 

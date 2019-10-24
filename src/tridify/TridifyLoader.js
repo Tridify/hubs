@@ -1,4 +1,5 @@
 import { getModelHash } from "./modelparams";
+import { isArray } from "util";
 
 let urlParams;
 
@@ -54,6 +55,8 @@ async function createModel(scene) {
 function createLights(objectsScene) {
   const element = document.createElement("a-light");
   element.setAttribute("type", "ambient");
+  element.setAttribute("intensity", 1.2);
+  element.setAttribute("color", "#fefefa");
   objectsScene.appendChild(element);
 }
 
@@ -77,16 +80,18 @@ const parseIfc = () => {
     });
 };
 function getAllSlabsFromIfc(ifcStoreys) {
-  ifcStoreys.forEach(storey => {
-    if (storey.IfcSlab) {
-      // Ifc slab can be an array of objects or just one object
-      if (storey.IfcSlab[0]) {
-        storey.IfcSlab.forEach(element => {
-          ifcData.push(element["@id"]);
-        });
-      } else {
-        ifcData.push(storey.IfcSlab["@id"]);
+  if (isArray(ifcStoreys)) {
+    ifcStoreys.forEach(storey => {
+      if (storey.IfcSlab) {
+        // Ifc slab can be an array of objects or just one object
+        if (storey.IfcSlab[0]) {
+          storey.IfcSlab.forEach(element => {
+            ifcData.push(element["@id"]);
+          });
+        } else {
+          ifcData.push(storey.IfcSlab["@id"]);
+        }
       }
-    }
-  });
+    });
+  }
 }
