@@ -79,7 +79,7 @@ function getLenghtFromCenter(arrayElements) {
 
 function getChildMeshesPosition(ifcObject, accumulator = []) {
   if (ifcObject.hasOwnProperty("children") && ifcObject["type"] == "Mesh") {
-    accumulator.push(ifcObject.getWorldPosition());
+    accumulator.push(ifcObject.getWorldPosition(new THREE.Vector3()));
   }
   if (!isEmpty(ifcObject["children"])) {
     ifcObject.children.forEach(x => getChildMeshesPosition(x, accumulator));
