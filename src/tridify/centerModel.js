@@ -8,39 +8,38 @@ export function centerModel(arrayElements, ifc) {
 
   const slabGroups = arrayElements
     .map(x => {
-      return getElements(x.object3D, slabsData);
+      return getGroupEntities(x.object3D, slabsData);
     })
     .filter(x => x.length > 0)
     .flat();
 
   const slabsPos = slabGroups
     .map(x => {
-      return getIdsByChildTypes(x);
+      return getChildMeshesPosition(x);
     })
     .filter(x => x.length > 0)
-    .flat();
+    .flat()
+    .sort();
 
   const vectors = getLenghtFromCenter(
     arrayElements
       .map(x => {
-        return getIdsByChildTypes(x.object3D);
+        return getChildMeshesPosition(x.object3D);
       })
       .filter(x => x.length > 0)
       .flat(),
-    getLowestSlab(slabsPos)
+    slabsPos[1].y || slabsPos[0].y
   );
+
   setMainCameraPositon(vectors);
   const moveVector = createVectorToMove(vectors);
 
   arrayElements.forEach(x => x.setAttribute("position", moveVector));
   return moveVector;
 }
-function getLowestSlab(slabsPos) {
-  slabsPos.sort();
-  return slabsPos[0].y;
-}
+
 function createVectorToMove(vectors, yPosition) {
-  return new Vector3(-(vectors[1].x + vectors[0].x) / 2, -yPosition, -(vectors[1].z + vectors[0].z) / 2);
+  return new Vector3(-(vectors[1].x + vectors[0].x) / 2, -yPosition || 0, -(vectors[1].z + vectors[0].z) / 2);
 }
 
 function getLenghtFromCenter(arrayElements) {
@@ -74,24 +73,16 @@ function getLenghtFromCenter(arrayElements) {
   return [{ x: xPos, y: yPos, z: zPos }, { x: xNeg, y: yNeg, z: zNeg }];
 }
 
-function getIdsByChildTypes(ifcObject, accumulator = []) {
+function getChildMeshesPosition(ifcObject, accumulator = []) {
   if (ifcObject.hasOwnProperty("children") && ifcObject["type"] == "Mesh") {
     accumulator.push(ifcObject.getWorldPosition());
   }
   if (!isEmpty(ifcObject["children"])) {
-    ifcObject.children.forEach(x => getIdsByChildTypes(x, accumulator));
+    ifcObject.children.forEach(x => getChildMeshesPosition(x, accumulator));
   }
   return accumulator;
 }
-
-function isEmpty(obj) {
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key)) return false;
-  }
-  return true;
-}
-
-function getElements(ifcObject, childHashIds, accumulator = []) {
+function getGroupEntities(ifcObject, childHashIds, accumulator = []) {
   if (
     ifcObject["type"] == "Group" &&
     ifcObject.hasOwnProperty("name") &&
@@ -100,7 +91,13 @@ function getElements(ifcObject, childHashIds, accumulator = []) {
     accumulator.push(ifcObject);
   }
   if (!isEmpty(ifcObject["children"])) {
-    ifcObject.children.forEach(x => getElements(x, childHashIds, accumulator));
+    ifcObject.children.forEach(x => getGroupEntities(x, childHashIds, accumulator));
   }
   return accumulator;
+}
+function isEmpty(obj) {
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) return false;
+  }
+  return true;
 }
