@@ -6,40 +6,44 @@ export function centerModel(arrayElements, ifc) {
   const slabsData = getIfcSlabs(ifc);
   if (!slabsData) console.log("no slabs found");
 
-  const slabGroups = arrayElements
+  const allGroups = arrayElements
     .map(x => {
-      return getGroupEntities(x.object3D, slabsData);
+      return getGroupEntities(x.object3D);
     })
     .filter(x => x.length > 0)
     .flat();
+  const slabGroups = allGroups.filter(x => slabsData.includes(x.name));
+  const slabsPos = getAndSortMeshes(slabGroups);
+  const allMeshesPos = getAndSortMeshes(allGroups);
+  const vectors = getLenghtFromCenter(allMeshesPos);
+  const vDist = dist(vectors[0], vectors[1]);
 
-  const slabsPos = slabGroups
+  setMainCameraPositon(vDist);
+  const moveVector = createVectorToMove(vectors, slabsPos[0] ? slabsPos[0].y : 0);
+
+  arrayElements.forEach(x => x.setAttribute("position", moveVector));
+  return moveVector;
+}
+function dist(vector1, vector2) {
+  const a = vector1.x - vector2.x;
+  const b = vector1.y - vector2.y;
+  const c = vector1.z - vector2.z;
+  return Math.sqrt(a * a + b * b + c * c);
+}
+function getAndSortMeshes(groupMeshes) {
+  return groupMeshes
     .map(x => {
       return getChildMeshesPosition(x);
     })
     .filter(x => x.length > 0)
     .flat()
-    .sort();
-
-  const vectors = getLenghtFromCenter(
-    arrayElements
-      .map(x => {
-        return getChildMeshesPosition(x.object3D);
-      })
-      .filter(x => x.length > 0)
-      .flat(),
-    slabsPos[1].y || slabsPos[0].y
-  );
-
-  setMainCameraPositon(vectors);
-  const moveVector = createVectorToMove(vectors);
-
-  arrayElements.forEach(x => x.setAttribute("position", moveVector));
-  return moveVector;
+    .sort((a, b) => {
+      return a.y - b.y;
+    });
 }
 
 function createVectorToMove(vectors, yPosition) {
-  return new Vector3(-(vectors[1].x + vectors[0].x) / 2, -yPosition || 0, -(vectors[1].z + vectors[0].z) / 2);
+  return new Vector3(-(vectors[1].x + vectors[0].x) / 2, -yPosition, -(vectors[1].z + vectors[0].z) / 2);
 }
 
 function getLenghtFromCenter(arrayElements) {
@@ -82,16 +86,12 @@ function getChildMeshesPosition(ifcObject, accumulator = []) {
   }
   return accumulator;
 }
-function getGroupEntities(ifcObject, childHashIds, accumulator = []) {
-  if (
-    ifcObject["type"] == "Group" &&
-    ifcObject.hasOwnProperty("name") &&
-    Object.values(ifcObject).some(y => childHashIds.includes(y))
-  ) {
+function getGroupEntities(ifcObject, accumulator = []) {
+  if (ifcObject["type"] == "Group" && ifcObject.hasOwnProperty("name") && ifcObject["name"] != "") {
     accumulator.push(ifcObject);
   }
   if (!isEmpty(ifcObject["children"])) {
-    ifcObject.children.forEach(x => getGroupEntities(x, childHashIds, accumulator));
+    ifcObject.children.forEach(x => getGroupEntities(x, accumulator));
   }
   return accumulator;
 }
