@@ -6,49 +6,44 @@ export function centerModel(arrayElements, ifc) {
   const slabsData = getIfcSlabs(ifc);
   if (!slabsData) console.log("no slabs found");
 
-  const slabGroups = arrayElements
+  const allGroups = arrayElements
     .map(x => {
-      return getElements(x.object3D, slabsData);
+      return getGroupEntities(x.object3D);
     })
     .filter(x => x.length > 0)
     .flat();
+  const slabGroups = allGroups.filter(x => slabsData.includes(x.name));
+  const slabsPos = getAndSortMeshes(slabGroups);
+  const allMeshesPos = getAndSortMeshes(allGroups);
+  const vectors = getLenghtFromCenter(allMeshesPos);
+  const vDist = dist(vectors[0], vectors[1]);
 
-  const slabsPos = slabGroups
-    .map(x => {
-      return getIdsByChildTypes(x);
-    })
-    .filter(x => x.length > 0)
-    .flat();
-
-  const vectors = getLenghtFromCenter(
-    arrayElements
-      .map(x => {
-        return getIdsByChildTypes(x.object3D);
-      })
-      .filter(x => x.length > 0)
-      .flat(),
-    getLowestSlab(slabsPos)
-  );
-  setMainCameraPositon(vectors);
-  const moveVector = createVectorToMove(vectors);
+  setMainCameraPositon(vDist);
+  const moveVector = createVectorToMove(vectors, slabsPos[0] ? slabsPos[0].y : 0);
 
   arrayElements.forEach(x => x.setAttribute("position", moveVector));
   return moveVector;
 }
-function getLowestSlab(slabsPos) {
-  let a = 100000;
-  slabsPos.forEach(x => {
-    if (a > x.y) {
-      a = x.y;
-    }
-  });
-  return a;
+function dist(vector1, vector2) {
+  const a = vector1.x - vector2.x;
+  const b = vector1.y - vector2.y;
+  const c = vector1.z - vector2.z;
+  return Math.sqrt(a * a + b * b + c * c);
 }
+function getAndSortMeshes(groupMeshes) {
+  return groupMeshes
+    .map(x => {
+      return getChildMeshesPosition(x);
+    })
+    .filter(x => x.length > 0)
+    .flat()
+    .sort((a, b) => {
+      return a.y - b.y;
+    });
+}
+
 function createVectorToMove(vectors, yPosition) {
-  const posVector = vectors[0];
-  const negVector = vectors[1];
-  const centerVector = new Vector3(-(negVector.x + posVector.x) / 2, -yPosition, -(negVector.z + posVector.z) / 2);
-  return centerVector;
+  return new Vector3(-(vectors[1].x + vectors[0].x) / 2, -yPosition, -(vectors[1].z + vectors[0].z) / 2);
 }
 
 function getLenghtFromCenter(arrayElements) {
@@ -80,36 +75,29 @@ function getLenghtFromCenter(arrayElements) {
     }
   });
   return [{ x: xPos, y: yPos, z: zPos }, { x: xNeg, y: yNeg, z: zNeg }];
-  //return [xPos, yPos, zPos, xNeg, yNeg, zNeg];
 }
 
-function getIdsByChildTypes(ifcObject, accumulator = []) {
+function getChildMeshesPosition(ifcObject, accumulator = []) {
   if (ifcObject.hasOwnProperty("children") && ifcObject["type"] == "Mesh") {
     accumulator.push(ifcObject.getWorldPosition());
   }
   if (!isEmpty(ifcObject["children"])) {
-    ifcObject.children.forEach(x => getIdsByChildTypes(x, accumulator));
+    ifcObject.children.forEach(x => getChildMeshesPosition(x, accumulator));
   }
   return accumulator;
 }
-
+function getGroupEntities(ifcObject, accumulator = []) {
+  if (ifcObject["type"] == "Group" && ifcObject.hasOwnProperty("name") && ifcObject["name"] != "") {
+    accumulator.push(ifcObject);
+  }
+  if (!isEmpty(ifcObject["children"])) {
+    ifcObject.children.forEach(x => getGroupEntities(x, accumulator));
+  }
+  return accumulator;
+}
 function isEmpty(obj) {
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) return false;
   }
   return true;
-}
-
-function getElements(ifcObject, childHashIds, accumulator = []) {
-  if (
-    ifcObject["type"] == "Group" &&
-    ifcObject.hasOwnProperty("name") &&
-    Object.values(ifcObject).some(y => childHashIds.includes(y))
-  ) {
-    accumulator.push(ifcObject);
-  }
-  if (!isEmpty(ifcObject["children"])) {
-    ifcObject.children.forEach(x => getElements(x, childHashIds, accumulator));
-  }
-  return accumulator;
 }
