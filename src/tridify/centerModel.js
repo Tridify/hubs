@@ -36,19 +36,11 @@ export function centerModel(arrayElements, ifc) {
   return moveVector;
 }
 function getLowestSlab(slabsPos) {
-  let a = 100000;
-  slabsPos.forEach(x => {
-    if (a > x.y) {
-      a = x.y;
-    }
-  });
-  return a;
+  slabsPos.sort();
+  return slabsPos[0].y;
 }
 function createVectorToMove(vectors, yPosition) {
-  const posVector = vectors[0];
-  const negVector = vectors[1];
-  const centerVector = new Vector3(-(negVector.x + posVector.x) / 2, -yPosition, -(negVector.z + posVector.z) / 2);
-  return centerVector;
+  return new Vector3(-(vectors[1].x + vectors[0].x) / 2, -yPosition, -(vectors[1].z + vectors[0].z) / 2);
 }
 
 function getLenghtFromCenter(arrayElements) {
@@ -80,7 +72,6 @@ function getLenghtFromCenter(arrayElements) {
     }
   });
   return [{ x: xPos, y: yPos, z: zPos }, { x: xNeg, y: yNeg, z: zNeg }];
-  //return [xPos, yPos, zPos, xNeg, yNeg, zNeg];
 }
 
 function getIdsByChildTypes(ifcObject, accumulator = []) {
